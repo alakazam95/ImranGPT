@@ -2,9 +2,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from config import dp
 import handlers.profile
+import handlers.callback_handlers
 import handlers.pay
+import handlers.mode
 import handlers.reset
 import handlers.img
+import handlers.help
 import handlers.blend
 import handlers.ask
 

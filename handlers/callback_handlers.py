@@ -33,4 +33,3 @@ async def process_callback_mode_selection(callback_query: types.CallbackQuery):
     # Добавляем кнопки по две в ряд
     keyboard.row(buttons[0], buttons[1])
     keyboard.row(buttons[2], buttons[3])
-
