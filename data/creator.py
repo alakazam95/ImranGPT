@@ -1,8 +1,7 @@
 import sqlite3
 
-
 subscription_type = 'Basic'  # Заполнительное значение
-user_limit = 100             # Заполнительное значение
+user_limit = 100  # Заполнительное значение
 limit_update_date = '2023-01-01'  # Заполнительное значение
 
 
@@ -21,15 +20,16 @@ class dbCreator():
         """Закрытие соединения с базой данных."""
         self.conn.close()
 
-    def add_user(self, user_id, subscription_type='basic', user_limit=100, limit_update_date='2024-01-01'):
+    def add_user(self, user_id, nickname, user_limit=100, limit_update_date='2024-01-01'):
         with self.conn:
-            self.cursor.execute('INSERT INTO user (user_id, subscription_type, user_limit, limit_update_date) VALUES (?, ?, ?, ?)',
-                                (user_id, subscription_type, user_limit, limit_update_date))
+            self.cursor.execute(
+                'INSERT INTO user (user_id, nickname, user_limit, limit_update_date) VALUES (?, ?, ?, ?)',
+                (user_id, nickname, user_limit, limit_update_date))
 
     def user_exists(self, user_id):
         with self.conn:
             result = self.cursor.execute("SELECT * FROM `user` WHERE `user_id` = ?", (user_id,)).fetchall()
-            print(result)
+            return bool(result)
 
     def get_users(self):
         c = self.conn.cursor()
@@ -43,7 +43,7 @@ class dbCreator():
 
     def get_nickname(self, user_id):
         with self.conn:
-            result = self.cursor.execute("SELECT `nickname` FROM `users` WHERE `user_id` = ?", (user_id,)).fetchone()
+            result = self.cursor.execute("SELECT `nickname` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
             return result[0] if result else None
 
     def set_time_sub(self, user_id, time_sub):

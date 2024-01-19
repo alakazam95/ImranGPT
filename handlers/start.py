@@ -1,23 +1,26 @@
 from aiogram import types
 from config import dp, bot
-import data.creator as cr
-import data.returner as rr
+import data.creator as db
 
 
 @dp.message_handler(commands=['start'])
 async def command_start(message: types.Message):
-    # keyboard = types.InlineKeyboardMarkup(row_width=2)
-    # help_button = types.InlineKeyboardButton(text="Help", callback_data="help")
-    # subscribe_button = types.InlineKeyboardButton(text="Купить подписку", callback_data="subscribe")
-    #
-    # keyboard.add(help_button, subscribe_button)
-    # user_id = message.from_user.id
+    db_creator = db.dbCreator()
+    user_id = message.from_user.id
+    nickname = message.from_user.username  # Получение никнейма пользователя
+
+    # Проверка, существует ли пользователь
+    if db_creator.user_exists(user_id):
+        # Если пользователь существует, обновляем его никнейм
+        if db_creator.get_nickname(user_id) != nickname:
+            db_creator.set_nickname(user_id, nickname)
+            await bot.send_message(user_id, "Ваш никнейм обновлен.")
+    else:
+        # Если пользователя нет, добавляем его в базу данных
+        db_creator.add_user(user_id, nickname)  # Предполагается, что add_user умеет обрабатывать nickname
+        await bot.send_message(user_id, "Вы зарегистрированы.")
 
     # В вашем обработчике сообщений
-    user_id = message.from_user.id
-    db_creator = cr.dbCreator()
-    db_creator.add_user(user_id, 'basic', 50000, '2024-05-12')
-
     print(db_creator.get_users())
 
 
