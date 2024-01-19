@@ -1,4 +1,4 @@
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 
 API_TOKEN = 'Ваш_Telegram_токен'
 
