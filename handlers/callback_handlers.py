@@ -2,7 +2,6 @@ from aiogram import types
 from config import bot, dp
 from aiogram import Bot, Dispatcher, types
 import data.creator as db
-import markups as nav
 from data.creator import dbCreator as Database
 
 modes = ['gpt3.5', 'gpt4', 'midjourney5.2', 'midjourney6']

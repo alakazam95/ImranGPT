@@ -1,8 +1,5 @@
 import sqlite3
-
-subscription_type = 'Basic'  # Заполнительное значение
-user_limit = 100  # Заполнительное значение
-limit_update_date = '2023-01-01'  # Заполнительное значение
+from datetime import datetime, timedelta
 
 
 class dbCreator():
@@ -20,11 +17,11 @@ class dbCreator():
         """Закрытие соединения с базой данных."""
         self.conn.close()
 
-    def add_user(self, user_id, nickname, user_limit=100, limit_update_date='2024-01-01'):
+    def add_user(self, user_id, nickname):
         with self.conn:
             self.cursor.execute(
-                'INSERT INTO user (user_id, nickname, user_limit, limit_update_date) VALUES (?, ?, ?, ?)',
-                (user_id, nickname, user_limit, limit_update_date))
+                'INSERT INTO user (user_id, nickname) VALUES (?, ?)',
+                (user_id, nickname))
 
     def user_exists(self, user_id):
         with self.conn:
@@ -46,27 +43,6 @@ class dbCreator():
             result = self.cursor.execute("SELECT `nickname` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
             return result[0] if result else None
 
-    def set_time_sub(self, user_id, time_sub):
-        with self.conn:
-            self.cursor.execute("UPDATE `user` SET `time_sub` = ? WHERE `user_id` = ?", (time_sub, user_id))
-
-    def get_time_sub(self, user_id):
-        with self.conn:
-            result = self.cursor.execute("SELECT `time_sub` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
-            return result[0] if result else None
-
-    def set_signup(self, user_id, signup):
-        with self.conn:
-            self.cursor.execute("UPDATE `user` SET `signup` = ? WHERE `user_id` = ?", (signup, user_id))
-
-    def get_signup(self, user_id):
-        with self.conn:
-            result = self.cursor.execute("SELECT `signup` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchall()
-            signup = None  # Инициализация переменной signup
-            for row in result:
-                signup = str(row[0])
-            return signup
-
     def set_subscription_type(self, user_id, subscription_type):
         with self.conn:
             self.cursor.execute("UPDATE `user` SET `subscription_type` = ? WHERE `user_id` = ?",
@@ -80,7 +56,8 @@ class dbCreator():
 
     def set_user_limit(self, user_id, user_limit):
         with self.conn:
-            self.cursor.execute("UPDATE `user` SET `user_limit` = ? WHERE `user_id` = ?", (user_limit, user_id))
+            self.cursor.execute("UPDATE `user` SET `user_limit` = ? WHERE `user_id` = ?",
+                                (user_limit, user_id))
 
     def get_user_limit(self, user_id):
         with self.conn:

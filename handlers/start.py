@@ -1,6 +1,7 @@
 from aiogram import types
 from config import dp, bot
 import data.creator as db
+import subscription
 
 
 @dp.message_handler(commands=['start'])
@@ -15,15 +16,14 @@ async def command_start(message: types.Message):
         if db_creator.get_nickname(user_id) != nickname:
             db_creator.set_nickname(user_id, nickname)
             await bot.send_message(user_id, "Ваш никнейм обновлен.")
-    else:
+    elif not db_creator.user_exists(user_id):
         # Если пользователя нет, добавляем его в базу данных
         db_creator.add_user(user_id, nickname)  # Предполагается, что add_user умеет обрабатывать nickname
+        subscription.activate_subscription(user_id, 'free')
         await bot.send_message(user_id, "Вы зарегистрированы.")
 
     # В вашем обработчике сообщений
     print(db_creator.get_users())
-
-
 
     await message.reply('''
 Это бот ChatGPT + MidJourney в Telegram. Чтобы задать вопрос, просто напишите его.  
