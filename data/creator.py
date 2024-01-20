@@ -52,7 +52,7 @@ class dbCreator():
         with self.conn:
             result = self.cursor.execute("SELECT `subscription_type` FROM `user` WHERE `user_id` = ?",
                                          (user_id,)).fetchone()
-            return result[0] if result else None
+            return result[0]
 
     def set_user_limit(self, user_id, user_limit):
         with self.conn:
