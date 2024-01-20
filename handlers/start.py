@@ -19,7 +19,7 @@ async def command_start(message: types.Message):
     elif not db_creator.user_exists(user_id):
         # Если пользователя нет, добавляем его в базу данных
         db_creator.add_user(user_id, nickname)  # Предполагается, что add_user умеет обрабатывать nickname
-        subscription.activate_subscription(user_id, 'free')
+        subscription.activate_subscription(user_id)
         await bot.send_message(user_id, "Вы зарегистрированы.")
 
     # В вашем обработчике сообщений
