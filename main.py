@@ -11,6 +11,7 @@ import handlers.img
 import handlers.help
 import handlers.blend
 import handlers.ask
+import AI.gpt_logic
 
 
 
