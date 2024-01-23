@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+import datetime
 
 
 class dbCreator():
@@ -7,6 +7,40 @@ class dbCreator():
         self.conn = sqlite3.connect(DATABASE_PATH)
         self.cursor = self.conn.cursor()
         self.check_table_structure()
+
+    def create_context_table(self, tablename):
+        """Создание отдельной таблицы контекста для пользователя."""
+
+        with self.conn:
+            self.cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {tablename} (
+                    id INTEGER PRIMARY KEY,
+                    message TEXT,
+                    role TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    user_id   INTEGER
+                )
+            """)
+
+    def add_context(self, user_id, message, role, tablename):
+        """Добавление сообщения в контекст пользователя."""
+
+        with self.conn:
+            self.cursor.execute(
+                f"INSERT INTO {tablename} (user_id, message, role) VALUES (?, ?, ?)",
+                (user_id, message, role)
+            )
+
+    def get_context(self, tablename):
+        """Получение всего контекста общения пользователя, упорядоченного по времени."""
+        with self.conn:
+            result = self.cursor.execute(
+                f"SELECT role, message FROM {tablename} ORDER BY timestamp"
+            ).fetchall()
+
+            # Преобразование результата в список словарей
+            context = [{"role": role, "content": message} for role, message in result]
+            return context
 
     def check_table_structure(self):
         with self.conn:
@@ -29,10 +63,10 @@ class dbCreator():
             return bool(result)
 
     def get_users(self):
-        c = self.conn.cursor()
-        c.execute("SELECT * FROM user")
-        users = c.fetchall()
-        return users
+        with self.conn:
+            result = self.cursor.execute("SELECT * FROM user")
+            users = result.fetchall()
+            return users
 
     def set_nickname(self, user_id, nickname):
         with self.conn:
