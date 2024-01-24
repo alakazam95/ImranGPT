@@ -15,7 +15,6 @@ def check_subscription_status(user_id):
 
 def activate_subscription(user_id):
     sub_type = db_creator.get_subscription_type(user_id)
-    print(sub_type)
     """Активирует бесплатную подписку для пользователя."""
     if sub_type == 'paid':
         new_limit_update_date = datetime.now() + timedelta(days=30)  # Дата обновления через месяц
