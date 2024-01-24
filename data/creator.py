@@ -3,7 +3,6 @@ import datetime
 import config
 
 
-
 class dbCreator():
     def __init__(self):
         self.conn = sqlite3.connect(config.DATABASE_PATH)
@@ -110,3 +109,14 @@ class dbCreator():
             result = self.cursor.execute("SELECT `limit_update_date` FROM `user` WHERE `user_id` = ?",
                                          (user_id,)).fetchone()
             return result[0] if result else None
+
+    def set_user_mode(self, user_id, selected_mode):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `user_mode` = ? WHERE `user_id` = ?",
+                                (selected_mode, user_id))
+
+    def get_user_mode(self, user_id):
+        with self.conn:
+            result = self.cursor.execute("SELECT `user_mode` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
+            return result[0] if result else "gpt-3.5-turbo"

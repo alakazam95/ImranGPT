@@ -8,7 +8,7 @@ from data.creator import dbCreator as Database
 
 db_creator = db.dbCreator()
 
-modes = ['GPT-3.5', 'GPT-4', 'MIDJOURNEY-5.2', 'MIDJOURNEY-6']
+modes = ['gpt-3.5-turbo', 'gpt-4', 'MIDJOURNEY-5.2', 'MIDJOURNEY-6']
 
 
 #
@@ -27,52 +27,36 @@ async def process_callback_subscribe(callback_query: types.CallbackQuery):
 # Предполагаем, что db_creator.get_subscription_type возвращает 'paid' или 'free'
 @dp.callback_query_handler(lambda c: c.data in modes)
 async def process_callback_mode_selection(callback_query: types.CallbackQuery):
-    regime = ''
-    subs_type = db_creator.get_subscription_type(callback_query.from_user.id)
+    user_id = callback_query.from_user.id
+    subs_type = db_creator.get_subscription_type(user_id)
+    paid = 1 if subs_type == 'paid' else 0
     selected_mode = callback_query.data
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     buttons = []
 
-    if selected_mode != 'gpt3.5' and subs_type != 'paid':
+    if selected_mode == 'gpt-4' and paid:
         subscription_message = "Доступ к этому режиму требует подписки. Используйте команду /pay для покупки подписки."
         await bot.send_message(callback_query.from_user.id, subscription_message)
+    if selected_mode == 'MIDJOURNEY-5.2' or selected_mode == 'MIDJOURNEY-6':
+        subscription_message = "Скоро сделаем"
+        await bot.send_message(callback_query.from_user.id, subscription_message)
+    if paid:
+        db_creator.set_user_mode(user_id, selected_mode)
+        # Добавление кнопок с учетом текущего выбора пользователя
+        for mode in modes:
+            text = f"{'✅ ' if mode == selected_mode else ''}{mode}"
+            callback_data = mode
+            buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
 
-    # Добавление кнопок с учетом текущего выбора пользователя
-    for mode in modes:
-        text = f"{'✅ ' if mode == selected_mode else ''}{mode}"
-        callback_data = mode
-        buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
+        # Добавление кнопок в клавиатуру
+        keyboard.add(*buttons[:2])  # Добавляем первые две кнопки
+        keyboard.add(*buttons[2:])  # Добавляем последние две кнопки
 
-    # Добавление кнопок в клавиатуру
-    keyboard.add(*buttons[:2])  # Добавляем первые две кнопки
-    keyboard.add(*buttons[2:])  # Добавляем последние две кнопки
-
-    # Отправляем или редактируем сообщение с клавиатурой
-    await bot.edit_message_reply_markup(chat_id=callback_query.from_user.id,
-                                        message_id=callback_query.message.message_id,
-                                        reply_markup=keyboard)
-    print(selected_mode)
-
-
-
-# @dp.callback_query_handler(lambda c: c.data in modes)
-# async def process_callback_mode_selection(callback_query: types.CallbackQuery):
-#     subs_n = db_creator.get_subscription_type(callback_query.from_user.id)
-#     selected_mode = callback_query.data
-#     keyboard = types.InlineKeyboardMarkup()
-#     buttons = []
-#
-#     if selected_mode != 'gpt3.5' and not subs_n == 'paid':
-#         subscription_message = "GPT-4 доступна в подписке по команде /pay" if selected_mode == 'gpt4' else "Генерация изображений с помощью MidJourney доступна в подписке по команде /pay"
-#         await bot.send_message(callback_query.from_user.id, subscription_message)
-#     for mode in modes:
-#         text = f"{'✅ ' if mode == selected_mode and subs_n == 'paid' or mode == 'gpt3.5' else ''}{mode.upper()}"
-#         callback_data = mode
-#         buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
-#
-#     # Добавляем кнопки по две в ряд
-#     keyboard.row(buttons[0], buttons[1])
-#     keyboard.row(buttons[2], buttons[3])
+        # Отправляем или редактируем сообщение с клавиатурой
+        await bot.edit_message_reply_markup(chat_id=callback_query.from_user.id,
+                                            message_id=callback_query.message.message_id,
+                                            reply_markup=keyboard)
+        print(selected_mode)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'pay')
@@ -105,4 +89,3 @@ async def handle_successful_payment(message: types.Message):
     db_creator.set_subscription_type(message.from_user.id, 'paid')
     subscription.activate_subscription(message.from_user.id)
     await message.reply("Спасибо за покупку подписки!")
-

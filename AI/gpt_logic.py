@@ -13,10 +13,12 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 @dp.message_handler()
 async def handle_message(message: types.Message):
+
     user_id = message.from_user.id
     tablename = f'{message.from_user.username}_context'
     global question
     question = message.text
+    model = db_creator.get_user_mode(user_id)
     print(message.from_user.username)
     # Send user input to OpenAI GPT
     db_creator.create_context_table(tablename)
