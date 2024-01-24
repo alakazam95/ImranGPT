@@ -1,14 +1,14 @@
-from config import bot, dp
+import config
+from config import bot, dp, OPENAI_API_KEY
 import data.creator as db
 from aiogram import Bot, Dispatcher, types
+import openai
 from openai import OpenAI
 
-db_creator = db.dbCreator()
-client = OpenAI()
-# openai.api_key = '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'
-OPENAI_API_KEY = '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'
 
-amed = [{"role": "system", "content": ""}]
+OPENAI_API_KEY = config.OPENAI_API_KEY
+db_creator = db.dbCreator()
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 @dp.message_handler()

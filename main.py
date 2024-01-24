@@ -1,6 +1,5 @@
 from aiogram.utils import executor
 from config import dp
-
 import handlers.profile
 import handlers.callback_handlers
 import handlers.pay
@@ -11,8 +10,7 @@ import handlers.img
 import handlers.help
 import handlers.blend
 import handlers.ask
-import AI.gpt_logic
-
+from AI import gpt_logic
 
 
 
