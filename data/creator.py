@@ -1,10 +1,12 @@
 import sqlite3
 import datetime
+import config
+
 
 
 class dbCreator():
-    def __init__(self, DATABASE_PATH="C:\\Users\\job_j\\Documents\\GitHub\\amed\\ImranGPT\\data\\mydatabase.db"):
-        self.conn = sqlite3.connect(DATABASE_PATH)
+    def __init__(self):
+        self.conn = sqlite3.connect(config.DATABASE_PATH)
         self.cursor = self.conn.cursor()
         self.check_table_structure()
 
