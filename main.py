@@ -11,6 +11,7 @@ import handlers.help
 import handlers.blend
 import handlers.ask
 from AI import gpt_logic
+from handlers import myid
 
 
 
