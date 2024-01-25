@@ -17,7 +17,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
-@dp.message_handler()
+@dp.message_handler(lambda message: not message.text.startswith('/'))
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
     db_creator.update_tokens_limit(user_id)

@@ -38,7 +38,7 @@ def build_mode_selection_keyboard(modem) -> types.InlineKeyboardMarkup:
 
     return keyboard
 
-
+#test
 @dp.message_handler(commands=['mode'])
 async def command_mode(message: types.Message):
     user_id = message.from_user.id
