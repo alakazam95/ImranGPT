@@ -166,3 +166,14 @@ class dbCreator():
         self.conn.commit()
 
         print('лимит обновлен')
+
+    def get_gpt4_limit(self, user_id, user_limit):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `gpt-4_limit` = ? WHERE `user_id` = ?",
+                                (user_limit, user_id))
+
+    def set_gpt4_limit(self, user_id):
+        with self.conn:
+            result = self.cursor.execute("SELECT `gpt-4_limit` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
+            return result[0] if result else None
