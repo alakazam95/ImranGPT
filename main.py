@@ -4,7 +4,7 @@ import handlers.profile
 import handlers.callback_handlers
 import handlers.pay
 import handlers.start
-import handlers.mode
+import mode
 import handlers.reset
 import handlers.img
 import handlers.help
@@ -17,5 +17,4 @@ from handlers import myid
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
-
 
