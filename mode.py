@@ -15,7 +15,7 @@ async def inform_user_about_subscription_requirements(callback_query: types.Call
 
 def is_mode_available_for_user(mode: str, user_id: int) -> bool:
     sub_type = db_creator.get_subscription_type(user_id)
-    if sub_type == 'paid' and (mode == 'gpt-3.5-turbo' or mode == 'gpt-4'):
+    if (sub_type == 'paid' and (mode == 'gpt-3.5-turbo' or mode == 'gpt-4')) or (sub_type == 'free' and mode == 'gpt-3.5-turbo'):
         return True
     return False
 
