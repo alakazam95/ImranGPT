@@ -91,12 +91,12 @@ class dbCreator():
 
     def set_user_limit(self, user_id, user_limit):
         with self.conn:
-            self.cursor.execute("UPDATE `user` SET `user_limit` = ? WHERE `user_id` = ?",
+            self.cursor.execute("UPDATE `user` SET `tokens_amount` = ? WHERE `user_id` = ?",
                                 (user_limit, user_id))
 
     def get_user_limit(self, user_id):
         with self.conn:
-            result = self.cursor.execute("SELECT `user_limit` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
+            result = self.cursor.execute("SELECT `tokens_amount` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
             return result[0] if result else None
 
     def set_limit_update_date(self, user_id, limit_update_date):
