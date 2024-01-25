@@ -96,7 +96,8 @@ class dbCreator():
 
     def get_user_limit(self, user_id):
         with self.conn:
-            result = self.cursor.execute("SELECT `tokens_amount` FROM `user` WHERE `user_id` = ?", (user_id,)).fetchone()
+            result = self.cursor.execute("SELECT `tokens_amount` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
             return result[0] if result else None
 
     def set_limit_update_date(self, user_id, limit_update_date):
@@ -177,3 +178,49 @@ class dbCreator():
             result = self.cursor.execute("SELECT `gpt-4_limit` FROM `user` WHERE `user_id` = ?",
                                          (user_id,)).fetchone()
             return result[0] if result else None
+
+    def get_dalle_limit(self, user_id, user_limit):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `dalle_limit` = ? WHERE `user_id` = ?",
+                                (user_limit, user_id))
+
+    def set_dalle_limit(self, user_id):
+        with self.conn:
+            result = self.cursor.execute("SELECT `dalle_limit` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
+            return result[0] if result else None
+
+    def renew_daily_limits(self, user_id):
+        update_query = """
+                UPDATE user
+                SET dalle_limit = CASE
+                    -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
+                    WHEN datetime('now') >= datetime(daily_limit_update_date) AND dalle_limit >= 0 THEN 25
+                    -- Во всех остальных случаях оставляем tokens_amount без изменений
+                    ELSE tokens_amount
+                END
+                WHERE user_id = ?
+                """
+
+        self.cursor.execute(update_query, (user_id,))
+        self.conn.commit()
+        update_query = """
+                UPDATE user
+                SET gpt-4_limit = CASE
+                    -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
+                    WHEN datetime('now') >= datetime(daily_limit_update_date) AND gpt-4_limit >= 0 THEN 50
+                    -- Во всех остальных случаях оставляем tokens_amount без изменений
+                    ELSE tokens_amount
+                END
+                WHERE user_id = ?
+                """
+
+        self.cursor.execute(update_query, (user_id,))
+        self.conn.commit()
+
+        print('лимит обновлен')
+
+    def set_daily_limit_update_date(self, user_id, limit_update_date):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `daily_limit_update_date` = ? WHERE `user_id` = ?",
+                                (limit_update_date, user_id))

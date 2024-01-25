@@ -22,6 +22,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
     db_creator.update_tokens_limit(user_id)
+    db_creator.renew_daily_limits(user_id)
     if db_creator.check_tokens_limit(user_id):
         tablename = f'{message.from_user.username}_context'
         global question
