@@ -120,3 +120,49 @@ class dbCreator():
             result = self.cursor.execute("SELECT `user_mode` FROM `user` WHERE `user_id` = ?",
                                          (user_id,)).fetchone()
             return result[0] if result else "gpt-3.5-turbo"
+
+    def update_tokens_amount(self, user_id, used_tokens):
+        update_query = """
+        UPDATE user
+        SET tokens_amount = CASE
+            WHEN tokens_amount > 0 AND tokens_amount - ? < 0 THEN 0
+            WHEN tokens_amount > 0 THEN tokens_amount - ?
+            ELSE tokens_amount - ?
+        END
+        WHERE user_id = ?
+        """
+
+        self.cursor.execute(update_query, (used_tokens, used_tokens, used_tokens, user_id))
+        self.conn.commit()
+
+    def check_tokens_limit(self, user_id):
+        self.cursor.execute("SELECT tokens_amount FROM user WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        # Возвращает 0, если tokens_amount равно 0, иначе возвращает 1
+        return 0 if result and result[0] == 0 else 1
+
+    def delete_user_questions(self, tablename):
+        """Удаление таблицы из базы данных по имени."""
+        try:
+            with self.conn:
+                self.cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
+                print(f"Таблица {tablename} успешно удалена.")
+        except sqlite3.Error as e:
+            print(f"Ошибка при удалении таблицы {tablename}: {e}")
+
+    def update_tokens_limit(self, user_id):
+        update_query = """
+        UPDATE user
+        SET tokens_amount = CASE
+            -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
+            WHEN datetime('now') >= datetime(limit_update_date) AND tokens_amount >= 0 THEN 50000
+            -- Во всех остальных случаях оставляем tokens_amount без изменений
+            ELSE tokens_amount
+        END
+        WHERE user_id = ?
+        """
+
+        self.cursor.execute(update_query, (user_id,))
+        self.conn.commit()
+
+        print('лимит обновлен')
