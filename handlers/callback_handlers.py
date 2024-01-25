@@ -1,14 +1,11 @@
-from aiogram import types
-
 import subscription
 from config import bot, dp
-from aiogram import Bot, Dispatcher, types
+from aiogram import types
 import data.creator as db
-from data.creator import dbCreator as Database
+import mode_manager as mm
+import mode
 
 db_creator = db.dbCreator()
-
-modes = ['gpt-3.5-turbo', 'gpt-4', 'MIDJOURNEY-5.2', 'MIDJOURNEY-6']
 
 
 #
@@ -25,38 +22,28 @@ async def process_callback_subscribe(callback_query: types.CallbackQuery):
 # обработчик для раздела /mode
 
 # Предполагаем, что db_creator.get_subscription_type возвращает 'paid' или 'free'
-@dp.callback_query_handler(lambda c: c.data in modes)
+@dp.callback_query_handler(lambda c: c.data in ['0', '1', '2', '3'])
 async def process_callback_mode_selection(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
-    subs_type = db_creator.get_subscription_type(user_id)
-    paid = 1 if subs_type == 'paid' else 0
-    selected_mode = callback_query.data
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    buttons = []
+    selected_mode_index = int(callback_query.data)
+    modem = mm.ModeManager(user_id, selected_mode_index)
 
-    if selected_mode == 'gpt-4' and paid:
-        subscription_message = "Доступ к этому режиму требует подписки. Используйте команду /pay для покупки подписки."
-        await bot.send_message(callback_query.from_user.id, subscription_message)
-    if selected_mode == 'MIDJOURNEY-5.2' or selected_mode == 'MIDJOURNEY-6':
-        subscription_message = "Скоро сделаем"
-        await bot.send_message(callback_query.from_user.id, subscription_message)
-    if paid:
-        db_creator.set_user_mode(user_id, selected_mode)
-        # Добавление кнопок с учетом текущего выбора пользователя
-        for mode in modes:
-            text = f"{'✅ ' if mode == selected_mode else ''}{mode}"
-            callback_data = mode
-            buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
+    # Проверка подписки и доступности режима
+    if not mode.is_mode_available_for_user(modem.get_mode(), user_id):
+        await mode.inform_user_about_subscription_requirements(callback_query)
+        return
 
-        # Добавление кнопок в клавиатуру
-        keyboard.add(*buttons[:2])  # Добавляем первые две кнопки
-        keyboard.add(*buttons[2:])  # Добавляем последние две кнопки
+    # Сохраняем выбранный режим пользователя
+    modem.set_mode()
 
-        # Отправляем или редактируем сообщение с клавиатурой
-        await bot.edit_message_reply_markup(chat_id=callback_query.from_user.id,
-                                            message_id=callback_query.message.message_id,
-                                            reply_markup=keyboard)
-        print(selected_mode)
+    # Обновляем клавиатуру с учетом выбора пользователя
+    keyboard = mode.build_mode_selection_keyboard(modem)
+    await bot.edit_message_text(
+        chat_id=callback_query.from_user.id,
+        message_id=callback_query.message.message_id,
+        text="Выберите режим:",
+        reply_markup=keyboard
+    )
 
 
 @dp.callback_query_handler(lambda c: c.data == 'pay')
