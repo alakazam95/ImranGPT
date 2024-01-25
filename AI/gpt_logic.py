@@ -1,3 +1,4 @@
+import openai
 import config
 from config import bot, dp, OPENAI_API_KEY
 import data.creator as db
@@ -47,3 +48,18 @@ async def handle_message(message: types.Message):
         db_creator.add_context(0, answ.content, "assistant", tablename)
     else:
         await message.reply('у вас закончились токены')
+
+async def generate_image(prompt):
+    try:
+        response = await openai.images.generate(
+            model="dall-e-3",
+            prompt=f"{prompt}",
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+
+        return response.data[0]["url"]
+    except Exception as e:
+        print(f"Ошибка при генерации изображения: {e}")
+        return None
