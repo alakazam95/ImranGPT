@@ -1,10 +1,6 @@
 import datetime
 from datetime import datetime, timedelta
-
-from aiogram import types
-
 import data.creator as db
-from config import bot, dp
 
 db_creator = db.dbCreator()
 

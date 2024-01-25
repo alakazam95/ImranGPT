@@ -1,4 +1,3 @@
-import openai
 import config
 from config import bot, dp, OPENAI_API_KEY
 import data.creator as db
@@ -18,7 +17,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
-@dp.message_handler()
+@dp.message_handler(lambda message: not message.text.startswith('/'))
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
     db_creator.update_tokens_limit(user_id)
@@ -48,18 +47,3 @@ async def handle_message(message: types.Message):
         db_creator.add_context(0, answ.content, "assistant", tablename)
     else:
         await message.reply('у вас закончились токены')
-
-async def generate_image(prompt):
-    try:
-        response = await openai.images.generate(
-            model="dall-e-3",
-            prompt=f"{prompt}",
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
-
-        return response.data[0]["url"]
-    except Exception as e:
-        print(f"Ошибка при генерации изображения: {e}")
-        return None
