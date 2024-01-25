@@ -44,11 +44,9 @@ async def command_mode(message: types.Message):
     user_id = message.from_user.id
     modem = mm.ModeManager(user_id)
     indxs = modem.get_modeindexes()
-    print(indxs)
     # db_creator.set_user_mode(user_id, 'gpt-3.5-turbo')
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     buttons = [types.InlineKeyboardButton((modem.get_modenames())[int(i)], callback_data=i) for i in indxs]
-    print('sdfsdf')
     keyboard.row(*buttons[:2])
     keyboard.row(*buttons[2:])
     await message.reply("Выберите нейросеть:", reply_markup=keyboard)
