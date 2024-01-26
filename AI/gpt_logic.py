@@ -4,6 +4,7 @@ from config import bot, dp, OPENAI_API_KEY
 import data.creator as db
 from aiogram import Bot, Dispatcher, types
 from openai import OpenAI
+import handlers.callback_handlers as ch
 import tiktoken
 
 OPENAI_API_KEY = config.OPENAI_API_KEY
@@ -18,21 +19,37 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
+def is_model_available(user_id, model):
+    model_availability = {'gpt-3.5-turbo': db_creator.check_tokens_limit(user_id),
+                          'gpt-4': db_creator.check_gpt4_limit(user_id),
+                          'dalle': db_creator.check_dalle_limit(user_id),
+                          # TODO изменить ключ (название midjourney) в соответствии с API
+                          'midjourney-5.2': db_creator.get_midjourney52_limit(user_id),
+                          'midjourney-6': db_creator.get_midjourney6_limit(user_id)
+                          }
+    return model_availability[model]
+
+
+
 @dp.message_handler(lambda message: not message.text.startswith('/'))
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
-    db_creator.update_tokens_limit(user_id)
+    db_creator.reset_tokens_limit(user_id)
     db_creator.renew_daily_limits(user_id)
-    if db_creator.check_tokens_limit(user_id):
+    gptmodel = db_creator.get_user_mode(user_id)
+    if not gptmodel:
+        gptmodel = 'gpt-3.5-turbo'
+        db_creator.set_user_mode(user_id, gptmodel)
+
+    if is_model_available(user_id, gptmodel):
         tablename = f'{message.from_user.username}_context'
         global question
         question = message.text
-        gptmodel = db_creator.get_user_mode(user_id)
+
         print(message.from_user.username)
         # Send user input to OpenAI GPT
         db_creator.create_context_table(tablename)
 
-        # amed.append({"role": "system", "content": question})
         # Сбор контекста для данного пользователя
         db_creator.add_context(user_id, question, "user", tablename)
         contant = db_creator.get_context(tablename)
@@ -49,6 +66,7 @@ async def handle_message(message: types.Message):
         db_creator.add_context(0, answ.content, "assistant", tablename)
     else:
         await message.reply('у вас закончились токены')
+
 
 async def generate_image(prompt):
     try:

@@ -64,6 +64,11 @@ async def checkout(pre_checkout_query: types.PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
+@dp.callback_query_handler(lambda c: c.data == 'keyerr')
+async def key_error(message: types.Message):
+    await message.reply("вы не выбрали нейросеть! /mode")
+
+
 @dp.message_handler(content_types=types.ContentType.SUCCESSFUL_PAYMENT)
 async def handle_successful_payment(message: types.Message):
     # Здесь обновите статус подписки пользователя в вашей базе данных

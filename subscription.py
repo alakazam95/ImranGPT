@@ -15,11 +15,15 @@ def activate_subscription(user_id):
     if sub_type == 'paid':
         new_limit_update_date = datetime.now() + timedelta(days=30)  # Дата обновления через месяц
         db_creator.set_user_limit(user_id, -1)
+        new_daily_limit_update_date = (datetime.now() + timedelta(days=1))
+
         db_creator.renew_daily_limits(user_id)
-        db_creator.set_daily_limit_update_date(user_id, (datetime.now() + timedelta(days=1)))
+        print('dsfsdfsdf')
     else:
         new_limit_update_date = datetime.now() + timedelta(days=7)  # Дата обновления через неделю
+        new_daily_limit_update_date = (datetime.now() - timedelta(days=1))
         db_creator.set_user_limit(user_id, 50000)
 
-    db_creator.set_subscription_type(user_id, sub_type)
+    db_creator.set_daily_limit_update_date(user_id, new_daily_limit_update_date.strftime("%Y-%m-%d %H:%M:%S"))
+    # db_creator.set_subscription_type(user_id, sub_type)
     db_creator.set_limit_update_date(user_id, (new_limit_update_date.strftime('%Y-%m-%d %H:%M:%S')))

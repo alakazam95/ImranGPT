@@ -142,6 +142,30 @@ class dbCreator():
         # Возвращает 0, если tokens_amount равно 0, иначе возвращает 1
         return 0 if result and result[0] == 0 else 1
 
+    def check_dalle_limit(self, user_id):
+        self.cursor.execute("SELECT dalle_limit FROM user WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        # Возвращает 0, если dalle_limit равно 0, иначе возвращает 1
+        return 0 if result and result[0] == 0 else 1
+
+    def check_midjourney52_limit(self, user_id):
+        self.cursor.execute("SELECT `midjourney_5.2_limit` FROM user WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        # Возвращает 0, если dalle_limit равно 0, иначе возвращает 1
+        return 0 if result and result[0] == 0 else 1
+
+    def check_midjourney6_limit(self, user_id):
+        self.cursor.execute("SELECT `midjourney_6_limit` FROM user WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        # Возвращает 0, если dalle_limit равно 0, иначе возвращает 1
+        return 0 if result and result[0] == 0 else 1
+
+    def check_gpt4_limit(self, user_id):
+        self.cursor.execute("SELECT `gpt-4_limit` FROM user WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        # Возвращает 0, если gpt-4_limit равно 0, иначе возвращает 1
+        return 0 if result and result[0] == 0 else 1
+
     def delete_user_questions(self, tablename):
         """Удаление таблицы из базы данных по имени."""
         try:
@@ -151,17 +175,18 @@ class dbCreator():
         except sqlite3.Error as e:
             print(f"Ошибка при удалении таблицы {tablename}: {e}")
 
-    def update_tokens_limit(self, user_id):
+    def reset_tokens_limit(self, user_id):
         update_query = """
         UPDATE user
         SET tokens_amount = CASE
             -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
-            WHEN datetime('now') >= datetime(limit_update_date) AND tokens_amount >= 0 THEN 50000
+            WHEN datetime('now') >= datetime(limit_update_date) THEN 50000
             -- Во всех остальных случаях оставляем tokens_amount без изменений
             ELSE tokens_amount
         END
         WHERE user_id = ?
         """
+        self.set_subscription_type(user_id, 'free')
 
         self.cursor.execute(update_query, (user_id,))
         self.conn.commit()
@@ -191,36 +216,85 @@ class dbCreator():
             return result[0] if result else None
 
     def renew_daily_limits(self, user_id):
-        update_query = """
-                UPDATE user
-                SET dalle_limit = CASE
-                    -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
-                    WHEN datetime('now') >= datetime(daily_limit_update_date) AND dalle_limit >= 0 THEN 25
-                    -- Во всех остальных случаях оставляем tokens_amount без изменений
-                    ELSE tokens_amount
-                END
-                WHERE user_id = ?
-                """
+        try:
+            with self.conn:
+                # Получаем текущий тип подписки и дату обновления дневного лимита
+                user_data = self.cursor.execute(
+                    "SELECT `subscription_type`, `daily_limit_update_date` FROM `user` WHERE `user_id` = ?",
+                    (user_id,)).fetchone()
+                if user_data:
+                    subscription_type, daily_limit_update_date = user_data
 
-        self.cursor.execute(update_query, (user_id,))
-        self.conn.commit()
-        update_query = """
-                UPDATE user
-                SET gpt-4_limit = CASE
-                    -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
-                    WHEN datetime('now') >= datetime(daily_limit_update_date) AND gpt-4_limit >= 0 THEN 50
-                    -- Во всех остальных случаях оставляем tokens_amount без изменений
-                    ELSE tokens_amount
-                END
-                WHERE user_id = ?
-                """
+                    if subscription_type == 'paid' and datetime.datetime.now() > datetime.datetime.strptime(
+                            daily_limit_update_date, "%Y-%m-%d %H:%M:%S"):
+                        print('tarelka')
+                        # Если подписка платная и пора обновлять лимиты
+                        self.cursor.execute("""
+                            UPDATE `user`
+                            SET `gpt-4_limit` = CASE
+                                WHEN `gpt-4_limit` >= 0 THEN 50
+                                ELSE `gpt-4_limit`
+                            END,
+                            `dalle_limit` = CASE
+                                WHEN `dalle_limit` >= 0 THEN 25
+                                ELSE `dalle_limit`
+                            END,
+                            `midjourney_6_limit` = CASE
+                                WHEN `midjourney_6_limit` >= 0 THEN 10  -- Установите желаемое значение для midjourney_6_limit
+                                ELSE `midjourney_6_limit`
+                            END,
+                            `midjourney_5.2_limit` = CASE
+                                WHEN `midjourney_5.2_limit` >= 0 THEN 25  -- Установите желаемое значение для midjourney_5.2_limit
+                                ELSE `midjourney_5.2_limit`
+                            END
+                            WHERE `user_id` = ?
+                        """, (user_id,))
+                    elif subscription_type == 'free':
+                        # Если подписка бесплатная, устанавливаем лимиты в ноль
+                        self.cursor.execute("""
+                            UPDATE `user`
+                            SET `gpt-4_limit` = 0, `dalle_limit` = 0, `midjourney_6_limit` = 0, `midjourney_5.2_limit` = 0
+                            WHERE `user_id` = ?
+                        """, (user_id,))
 
-        self.cursor.execute(update_query, (user_id,))
-        self.conn.commit()
+                    # Обновляем дату следующего обновления дневного лимита для всех, кто имеет подписку 'paid'
+                    if subscription_type == 'paid':
+                        self.cursor.execute("""
+                            UPDATE `user`
+                            SET `daily_limit_update_date` = datetime('now', '+1 day')
+                            WHERE `user_id` = ?
+                        """, (user_id,))
 
-        print('лимит обновлен')
+                    self.conn.commit()
+                    print("Дневные лимиты успешно обновлены.")
+                else:
+                    print("Пользователь не найден.")
+        except sqlite3.Error as e:
+            print(f"Ошибка при обновлении дневных лимитов для пользователя {user_id}: {e}")
 
     def set_daily_limit_update_date(self, user_id, limit_update_date):
         with self.conn:
             self.cursor.execute("UPDATE `user` SET `daily_limit_update_date` = ? WHERE `user_id` = ?",
                                 (limit_update_date, user_id))
+
+    def set_midjourney52_limit(self, user_id, user_limit):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `midjourney_5.2_limit` = ? WHERE `user_id` = ?",
+                                (user_limit, user_id))
+
+    def get_midjourney52_limit(self, user_id):
+        with self.conn:
+            result = self.cursor.execute("SELECT `midjourney_5.2_limit` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
+            return result[0] if result else None
+
+    def set_midjourney6_limit(self, user_id, user_limit):
+        with self.conn:
+            self.cursor.execute("UPDATE `user` SET `midjourney_6_limit` = ? WHERE `user_id` = ?",
+                                (user_limit, user_id))
+
+    def get_midjourney6_limit(self, user_id):
+        with self.conn:
+            result = self.cursor.execute("SELECT `midjourney_5.2_limit` FROM `user` WHERE `user_id` = ?",
+                                         (user_id,)).fetchone()
+            return result[0] if result else None
