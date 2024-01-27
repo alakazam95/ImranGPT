@@ -2,6 +2,8 @@ from aiogram import types
 from config import dp, bot
 import data.creator as db
 import subscription
+from datetime import datetime, timedelta
+
 
 
 @dp.message_handler(commands=['start'])
@@ -19,6 +21,11 @@ async def command_start(message: types.Message):
     elif not db_creator.user_exists(user_id):
         # Если пользователя нет, добавляем его в базу данных
         db_creator.add_user(user_id, nickname)  # Предполагается, что add_user умеет обрабатывать nickname
+
+        old_date = datetime.now() - timedelta(days=30)
+        db_creator.set_daily_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
+        db_creator.set_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
+        print('not exist')
         subscription.activate_subscription(user_id)
         await bot.send_message(user_id, "Вы зарегистрированы.")
 

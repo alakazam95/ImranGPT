@@ -49,17 +49,17 @@ async def handle_message(message: types.Message):
     else:
         await message.reply('у вас закончились токены')
 
-def generate_image(prompt):
+async def generate_image(prompt):
     try:
-        response = client.images.generate(
+        response = await openai.images.generate(
             model="dall-e-3",
             prompt=f"{prompt}",
             size="1024x1024",
             quality="standard",
             n=1,
         )
-        image_url = response.data[0].url
-        return image_url
+
+        return response.data[0]["url"]
     except Exception as e:
         print(f"Ошибка при генерации изображения: {e}")
         return None
