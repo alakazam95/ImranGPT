@@ -30,7 +30,6 @@ def is_model_available(user_id, model):
     return model_availability[model]
 
 
-
 @dp.message_handler(lambda message: not message.text.startswith('/'))
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
@@ -68,17 +67,17 @@ async def handle_message(message: types.Message):
         await message.reply('у вас закончились токены')
 
 
-async def generate_image(prompt):
+def generate_image(prompt):
     try:
-        response = await openai.images.generate(
+        response = client.images.generate(
             model="dall-e-3",
             prompt=f"{prompt}",
             size="1024x1024",
             quality="standard",
             n=1,
         )
-
-        return response.data[0]["url"]
+        image_url = response.data[0].url
+        return image_url
     except Exception as e:
         print(f"Ошибка при генерации изображения: {e}")
         return None

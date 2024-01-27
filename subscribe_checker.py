@@ -11,7 +11,7 @@ class BanMiddleware(BaseMiddleware):
 
     async def on_pre_process_message(self, message: types.Message, data: dict):
         # ID или username канала
-        channel_id = '@vedachjo'
+        channel_id = '@ITsheikh'
 
         user_channel_status = await self.bot.get_chat_member(channel_id, message.from_user.id)
         if user_channel_status.status == 'left':
@@ -25,6 +25,6 @@ class BanMiddleware(BaseMiddleware):
             message.from_user.full_name)
 
         reg_buttons = types.InlineKeyboardMarkup()
-        reg_buttons.add(types.InlineKeyboardButton(text='✅ Подписаться на канал', url='https://t.me/vedachjo'))
+        reg_buttons.add(types.InlineKeyboardButton(text='✅ Подписаться на канал', url='https://t.me/ITsheikh'))
 
         await message.answer(text, parse_mode='HTML', reply_markup=reg_buttons)
