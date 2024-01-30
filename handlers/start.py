@@ -26,7 +26,7 @@ async def command_start(message: types.Message):
         db_creator.set_daily_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
         db_creator.set_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
         print('not exist')
-        subscription.activate_subscription(user_id)
+        subscription.activate_subscription(user_id, 1)
         await bot.send_message(user_id, "Вы зарегистрированы.")
 
     # В вашем обработчике сообщений

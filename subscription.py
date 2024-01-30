@@ -9,15 +9,16 @@ def check_subscription_status(user_id):
     return db_creator.get_subscription_type(user_id)
 
 
-def activate_subscription(user_id):
+def activate_subscription(user_id, is_first_call=0):
     sub_type = db_creator.get_subscription_type(user_id)
     """Активирует бесплатную подписку для пользователя."""
     if sub_type == 'paid':
         new_limit_update_date = datetime.now() + timedelta(days=30)  # Дата обновления через месяц
-        db_creator.set_user_limit(user_id, -1)
-        new_daily_limit_update_date = (datetime.now() + timedelta(days=1))
 
+        db_creator.set_user_limit(user_id, -1)
         db_creator.renew_daily_limits(user_id)
+
+        new_daily_limit_update_date = (datetime.now() + timedelta(days=1))
         print('dsfsdfsdf')
     else:
         new_limit_update_date = datetime.now() + timedelta(days=7)  # Дата обновления через неделю

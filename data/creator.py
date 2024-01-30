@@ -176,18 +176,31 @@ class dbCreator():
             print(f"Ошибка при удалении таблицы {tablename}: {e}")
 
     def reset_tokens_limit(self, user_id):
+        # Проверяем, нужно ли обновить подписку
+        check_query = """
+        SELECT CASE
+            WHEN datetime('now') >= datetime(limit_update_date) THEN 1
+            ELSE 0
+        END
+        FROM user
+        WHERE user_id = ?
+        """
+        self.cursor.execute(check_query, (user_id,))
+        should_update_subscription = self.cursor.fetchone()[0]
+
+        # Если нужно, обновляем тип подписки
+        if should_update_subscription:
+            self.set_subscription_type(user_id, 'free')
+
+        # Обновляем лимит токенов
         update_query = """
         UPDATE user
         SET tokens_amount = CASE
-            -- Если текущая дата и время >= limit_update_date и tokens_amount >= 0, устанавливаем tokens_amount в 50000
             WHEN datetime('now') >= datetime(limit_update_date) THEN 50000
-            -- Во всех остальных случаях оставляем tokens_amount без изменений
             ELSE tokens_amount
         END
         WHERE user_id = ?
         """
-        self.set_subscription_type(user_id, 'free')
-
         self.cursor.execute(update_query, (user_id,))
         self.conn.commit()
 
@@ -249,6 +262,15 @@ class dbCreator():
                             END
                             WHERE `user_id` = ?
                         """, (user_id,))
+
+                        self.conn.commit()
+                        update_query = """
+                                UPDATE user
+                                SET daily_limit_update_date = datetime('now', '+1 day')
+                                WHERE user_id = ?
+                                """
+                        self.cursor.execute(update_query, (user_id,))
+
                     elif subscription_type == 'free':
                         # Если подписка бесплатная, устанавливаем лимиты в ноль
                         self.cursor.execute("""
@@ -256,16 +278,11 @@ class dbCreator():
                             SET `gpt-4_limit` = 0, `dalle_limit` = 0, `midjourney_6_limit` = 0, `midjourney_5.2_limit` = 0
                             WHERE `user_id` = ?
                         """, (user_id,))
-
-                    # Обновляем дату следующего обновления дневного лимита для всех, кто имеет подписку 'paid'
-                    if subscription_type == 'paid':
-                        self.cursor.execute("""
-                            UPDATE `user`
-                            SET `daily_limit_update_date` = datetime('now', '+1 day')
-                            WHERE `user_id` = ?
-                        """, (user_id,))
+                        print('лимиты в ноль')
 
                     self.conn.commit()
+                    print(datetime.datetime.now() > datetime.datetime.strptime(
+                        daily_limit_update_date, "%Y-%m-%d %H:%M:%S"))
                     print("Дневные лимиты успешно обновлены.")
                 else:
                     print("Пользователь не найден.")
@@ -298,3 +315,17 @@ class dbCreator():
             result = self.cursor.execute("SELECT `midjourney_5.2_limit` FROM `user` WHERE `user_id` = ?",
                                          (user_id,)).fetchone()
             return result[0] if result else None
+
+    def remove_limit(self, user_id, limit_name):
+        with self.conn:
+            # Получаем текущее значение
+            self.cursor.execute(f"SELECT `{limit_name}` FROM `user` WHERE `user_id` = ?", (user_id,))
+            result = self.cursor.fetchone()
+            if result:
+                current_value = result[0]
+
+                # Увеличиваем значение на единицу
+                new_value = current_value - 1
+                print(limit_name)
+                # Обновляем значение в базе данных
+                self.cursor.execute(f"UPDATE `user` SET `{limit_name}` = ? WHERE `user_id` = ?", (new_value, user_id))

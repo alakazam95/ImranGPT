@@ -15,7 +15,8 @@ async def inform_user_about_subscription_requirements(callback_query: types.Call
 
 def is_mode_available_for_user(mode: str, user_id: int) -> bool:
     sub_type = db_creator.get_subscription_type(user_id)
-    if (sub_type == 'paid' and (mode == 'gpt-3.5-turbo' or mode == 'gpt-4')) or (sub_type == 'free' and mode == 'gpt-3.5-turbo'):
+    if (sub_type == 'paid' and (mode == 'gpt-3.5-turbo' or mode == 'gpt-4')) or (
+            sub_type == 'free' and mode == 'gpt-3.5-turbo'):
         return True
     return False
 
@@ -26,7 +27,7 @@ def build_mode_selection_keyboard(modem) -> types.InlineKeyboardMarkup:
 
     # Создание списка кнопок
     for index, mode_name in enumerate(modem.get_modenames()):
-        text = f"{'✅ ' if modem.get_index() == index else ''}{mode_name}"
+        text = mode_name
         callback_data = str(index)
         buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
 
@@ -38,13 +39,14 @@ def build_mode_selection_keyboard(modem) -> types.InlineKeyboardMarkup:
 
     return keyboard
 
-#test
+
+# test
 @dp.message_handler(commands=['mode'])
 async def command_mode(message: types.Message):
     user_id = message.from_user.id
-    modem = mm.ModeManager(user_id)
+    usermode = db_creator.get_user_mode(user_id)
+    modem = mm.ModeManager(user_id, modename=usermode)
     indxs = modem.get_modeindexes()
-    # db_creator.set_user_mode(user_id, 'gpt-3.5-turbo')
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     buttons = [types.InlineKeyboardButton((modem.get_modenames())[int(i)], callback_data=i) for i in indxs]
     keyboard.row(*buttons[:2])

@@ -4,6 +4,8 @@ from aiogram import types
 import data.creator as db
 import mode_manager as mm
 import mode
+import datetime
+from datetime import datetime, timedelta
 
 db_creator = db.dbCreator()
 
@@ -71,7 +73,12 @@ async def key_error(message: types.Message):
 
 @dp.message_handler(content_types=types.ContentType.SUCCESSFUL_PAYMENT)
 async def handle_successful_payment(message: types.Message):
+    user_id = message.from_user.id
     # Здесь обновите статус подписки пользователя в вашей базе данных
-    db_creator.set_subscription_type(message.from_user.id, 'paid')
+    db_creator.set_subscription_type(user_id, 'paid')
+
+    new_daily_limit_update_date = (datetime.now() - timedelta(days=1))
+    db_creator.set_daily_limit_update_date(user_id, new_daily_limit_update_date.strftime("%Y-%m-%d %H:%M:%S"))
+
     subscription.activate_subscription(message.from_user.id)
     await message.reply("Спасибо за покупку подписки!")

@@ -19,7 +19,9 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
-def is_model_available(user_id, model):
+def is_model_available(user_id, model='gpt-3.5-turbo'):
+    if model == '':
+        model = 'gpt-3.5-turbo'
     model_availability = {'gpt-3.5-turbo': db_creator.check_tokens_limit(user_id),
                           'gpt-4': db_creator.check_gpt4_limit(user_id),
                           'dalle': db_creator.check_dalle_limit(user_id),
@@ -27,6 +29,8 @@ def is_model_available(user_id, model):
                           'midjourney-5.2': db_creator.get_midjourney52_limit(user_id),
                           'midjourney-6': db_creator.get_midjourney6_limit(user_id)
                           }
+
+
     return model_availability[model]
 
 
@@ -41,28 +45,34 @@ async def handle_message(message: types.Message):
         db_creator.set_user_mode(user_id, gptmodel)
 
     if is_model_available(user_id, gptmodel):
-        tablename = f'{message.from_user.username}_context'
-        global question
-        question = message.text
+        try:
+            tablename = f'{message.from_user.username}_context'
+            global question
+            question = message.text
 
-        print(message.from_user.username)
-        # Send user input to OpenAI GPT
-        db_creator.create_context_table(tablename)
+            print(message.from_user.username)
+            # Send user input to OpenAI GPT
+            db_creator.create_context_table(tablename)
 
-        # Сбор контекста для данного пользователя
-        db_creator.add_context(user_id, question, "user", tablename)
-        contant = db_creator.get_context(tablename)
-        print(gptmodel)
-        completion = client.chat.completions.create(
-            model=gptmodel,
-            messages=contant
-        )
-        answ = completion.choices[0].message
-        print(answ.content)
-        tokens = num_tokens_from_string(str(answ.content) + question, 'cl100k_base')
-        db_creator.update_tokens_amount(user_id, tokens)
-        await message.reply(answ.content)
-        db_creator.add_context(0, answ.content, "assistant", tablename)
+            # Сбор контекста для данного пользователя
+            db_creator.add_context(user_id, question, "user", tablename)
+            contant = db_creator.get_context(tablename)
+            print(gptmodel)
+            completion = client.chat.completions.create(
+                model=gptmodel,
+                messages=contant
+            )
+            answ = completion.choices[0].message
+            print(answ.content)
+            tokens = num_tokens_from_string(str(answ.content) + question, 'cl100k_base')
+            db_creator.update_tokens_amount(user_id, tokens)
+            await message.reply(answ.content)
+            db_creator.add_context(0, answ.content, "assistant", tablename)
+            if gptmodel != 'gpt-3.5-turbo':
+                db_creator.remove_limit(user_id, f'{gptmodel}_limit')
+        except Exception as e:
+            await message.reply(e)
+
     else:
         await message.reply('у вас закончились токены')
 

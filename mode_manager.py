@@ -8,7 +8,9 @@ mode_indx = [0, 1, 2, 3]
 
 
 class ModeManager:
-    def __init__(self, user_id, mode_index=0):
+    def __init__(self, user_id, mode_index=0, modename=''):
+        if modename:
+            mode_index = modes.index(modename)
         self.modes = modes
         self.mode_names = mode_names
         self.mode_indx = mode_indx
@@ -18,7 +20,10 @@ class ModeManager:
         self.mode = modes[mode_index]
 
     def get_modenames(self):
-        return self.mode_names
+        names = self.mode_names[:]
+        names[self.mode_index] = '✅' + self.mode_name
+
+        return names
 
     def get_modetypes(self):
         return self.modes
@@ -30,7 +35,7 @@ class ModeManager:
         return self.mode_index
 
     def get_name(self):
-        return mode_names[self.mode_index]
+        return '✅' + mode_names[self.mode_index]
 
     def get_mode(self):
         return modes[self.mode_index]
@@ -39,4 +44,4 @@ class ModeManager:
         db_creator.set_user_mode(self.user_id, self.mode)
         return self.mode
 
-#fgfghfh
+# fgfghfh
