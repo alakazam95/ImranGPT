@@ -2,12 +2,10 @@ import subscription
 from config import bot, dp
 from aiogram import types
 import data.creator as db
-import mode_manager as mm
-import mode
-import datetime
+from handlers.mode import create_mode_keyboard, mode_command_handler
 from datetime import datetime, timedelta
 
-db_creator = db.dbCreator()
+db_manager = db.DBManager()
 
 
 @dp.callback_query_handler(lambda c: c.data == 'subscribe')
@@ -17,29 +15,65 @@ async def process_callback_subscribe(callback_query: types.CallbackQuery):
 
 # обработчик для раздела /mode
 
-# Предполагаем, что db_creator.get_subscription_type возвращает 'paid' или 'free'
-@dp.callback_query_handler(lambda c: c.data in ['0', '1', '2', '3'])
-async def process_callback_mode_selection(callback_query: types.CallbackQuery):
-    user_id = callback_query.from_user.id
-    selected_mode_index = int(callback_query.data)
-    modem = mm.ModeManager(user_id, selected_mode_index)
+# Предполагаем, что db_manager.get_subscription_type возвращает 'paid' или 'free'
+@dp.message_handler(commands=['mode'])
+async def mode_command_handler(message: types.Message):
+    user_id = message.from_user.id
+    user = db_manager.get_user(user_id)
 
-    # Проверка подписки и доступности режима
-    if not mode.is_mode_available_for_user(modem.get_mode(), user_id):
-        await mode.inform_user_about_subscription_requirements(callback_query)
+    # Если пользователь не найден в базе данных, создаем новую запись
+    if not user:
+        db_manager.add_user(user_id=user_id, nickname=message.from_user.username,
+                            gpt_subscription_type=None, mj_subscription_type=None,
+                            gpt_sub_update_date=None, mj_sub_update_date=None,
+                            cur_gpt_mode=None, cur_mj_mode=None,
+                            gpt3_tokens=0, mj_daily_update_date=None, gpt_daily_update_date=None,
+                            mj52_limit=0, mj6_limit=0, gpt4_limit=0, gpt35_limit=0)
+        user = db_manager.get_user(user_id)  # Повторно получаем данные после создания
+
+    cur_gpt_mode = user['cur_gpt_mode'] if user['cur_gpt_mode'] else "Не выбрано"
+    cur_mj_mode = user['cur_mj_mode'] if user['cur_mj_mode'] else "Не выбрано"
+
+    # Проверяем наличие подписок
+    has_gpt_subscription = user['gpt_subscription_type'] is not None
+    has_mj_subscription = user['mj_subscription_type'] is not None
+
+    if has_gpt_subscription or has_mj_subscription:
+        keyboard = create_mode_keyboard(cur_gpt_mode, cur_mj_mode, has_gpt_subscription, has_mj_subscription)
+        await message.reply("Выберите режим:", reply_markup=keyboard)
+    else:
+        await message.reply("У вас нет активной подписки. Пожалуйста, подпишитесь для доступа к этим функциям.")
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith('gpt-') or c.data.startswith('midjourney-'))
+async def handle_mode_selection(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    data = callback_query.data
+
+    # Получение текущих настроек пользователя из базы данных
+    user = db_manager.get_user(user_id)
+    if not user:
+        await callback_query.answer("Произошла ошибка, попробуйте еще раз.", show_alert=True)
         return
 
-    # Сохраняем выбранный режим пользователя
-    modem.set_mode()
+    if data.startswith('gpt-'):
+        new_mode = data  # 'gpt-3.5' или 'gpt-4'
+        db_manager.update_user(user_id, cur_gpt_mode=new_mode)
+    elif data.startswith('midjourney-'):
+        new_mode = data  # 'midjourney-5.2' или 'midjourney-6'
+        db_manager.update_user(user_id, cur_mj_mode=new_mode)
 
-    # Обновляем клавиатуру с учетом выбора пользователя
-    keyboard = mode.build_mode_selection_keyboard(modem)
-    await bot.edit_message_text(
-        chat_id=callback_query.from_user.id,
-        message_id=callback_query.message.message_id,
-        text="Выберите режим:",
-        reply_markup=keyboard
-    )
+    # Перезапрашиваем обновленные данные пользователя
+    updated_user = db_manager.get_user(user_id)
+    cur_gpt_mode = updated_user['cur_gpt_mode']
+    cur_mj_mode = updated_user['cur_mj_mode']
+    has_gpt_subscription = updated_user['gpt_subscription_type'] is not None
+    has_mj_subscription = updated_user['mj_subscription_type'] is not None
+
+    # Создаем и отправляем обновленную клавиатуру
+    keyboard = create_mode_keyboard(cur_gpt_mode, cur_mj_mode, has_gpt_subscription, has_mj_subscription)
+    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+    await callback_query.answer("Режим обновлен!")
 
 
 @dp.callback_query_handler(lambda c: c.data == 'pay')
@@ -75,10 +109,10 @@ async def key_error(message: types.Message):
 async def handle_successful_payment(message: types.Message):
     user_id = message.from_user.id
     # Здесь обновите статус подписки пользователя в вашей базе данных
-    db_creator.set_subscription_type(user_id, 'paid')
+    db_manager.set_subscription_type(user_id, 'paid')
 
     new_daily_limit_update_date = (datetime.now() - timedelta(days=1))
-    db_creator.set_daily_limit_update_date(user_id, new_daily_limit_update_date.strftime("%Y-%m-%d %H:%M:%S"))
+    db_manager.set_daily_limit_update_date(user_id, new_daily_limit_update_date.strftime("%Y-%m-%d %H:%M:%S"))
 
     subscription.activate_subscription(message.from_user.id)
     await message.reply("Спасибо за покупку подписки!")
