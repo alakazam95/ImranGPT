@@ -1,4 +1,3 @@
-import openai
 import config
 from config import bot, dp, OPENAI_API_KEY
 import data.creator as db

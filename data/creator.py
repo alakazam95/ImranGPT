@@ -37,7 +37,6 @@ class DBManager:
             return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
 
-
     def add_user(self, nickname, user_id, gpt_subscription_type, mj_subscription_type,
                  gpt_sub_update_date, mj_sub_update_date, cur_gpt_mode, cur_mj_mode,
                  gpt3_tokens, mj_daily_update_date, gpt_daily_update_date, mj52_limit,
@@ -86,6 +85,3 @@ class DBManager:
             query = 'SELECT * FROM user'
             cursor = conn.execute(query)
             return cursor.fetchall()
-
-
-
