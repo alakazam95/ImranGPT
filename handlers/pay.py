@@ -1,25 +1,31 @@
 from aiogram import types
-from config import dp
-import datetime
-from datetime import datetime, timedelta
-
-from aiogram import types
-
 import data.creator as db
 from config import bot, dp
+from data.subscription import valid_subscriptions
 
-db_creator = db.dbCreator()
+
+db_manager = db.DBManager()
 
 
 @dp.message_handler(commands=['pay'])
 async def command_pay(message: types.Message):
-    if db_creator.get_subscription_type(message.from_user.id) == 'paid':
-        await message.reply("у вас и так есть подписка")
-        return
+    # Проверяем, есть ли у пользователя активная подписка
+    user_id = message.from_user.id
+    user = db_manager.get_user(user_id)
+    has_gpt_subscription = user['gpt_subscription_type'] in valid_subscriptions
 
-        # Логика для покупки подписки
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
-    paybutton = types.InlineKeyboardButton("pay", callback_data="pay")
+    keyboard = types.InlineKeyboardMarkup(row_width=1)  # Для лучшей читаемости делаем одну кнопку на строку
 
-    keyboard.add(paybutton)
-    await message.reply("Опция покупки подписки: ...", reply_markup=keyboard)
+    # Создаем кнопки для каждой подписки
+    subscription_buttons = [
+        types.InlineKeyboardButton("GPT Старт - 490 руб/мес", callback_data="pay_gpt_Старт"),
+        types.InlineKeyboardButton("GPT Стандарт - 990 руб/мес", callback_data="pay_gpt_Стандарт"),
+        types.InlineKeyboardButton("GPT Премиум - 2990 руб/мес", callback_data="pay_gpt_Премиум"),
+        types.InlineKeyboardButton("Midjourney Старт - 290 руб/мес", callback_data="pay_mj_Старт"),
+        types.InlineKeyboardButton("Midjourney Стандарт - 590 руб/мес", callback_data="pay_mj_Стандарт"),
+        types.InlineKeyboardButton("Midjourney Премиум - 990 руб/мес", callback_data="pay_mj_Премиум")
+    ]
+
+    # Добавляем кнопки в клавиатуру
+    keyboard.add(*subscription_buttons)
+    await message.reply("Выберите тип подписки:", reply_markup=keyboard)

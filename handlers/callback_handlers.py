@@ -2,10 +2,11 @@ import subscription
 from config import bot, dp
 from aiogram import types
 import data.creator as db
-import mode_manager as mm
-import mode
+from handlers.mode import create_mode_keyboard, mode_command_handler
+from data.subscription import valid_subscriptions, GPTSubscription, MJSubscription
+from datetime import datetime, timedelta
 
-db_creator = db.dbCreator()
+db_manager = db.DBManager()
 
 
 @dp.callback_query_handler(lambda c: c.data == 'subscribe')
@@ -13,50 +14,68 @@ async def process_callback_subscribe(callback_query: types.CallbackQuery):
     await bot.send_message(callback_query.from_user.id, "Информация о подписке...")
 
 
-# обработчик для раздела /mode
-
-# Предполагаем, что db_creator.get_subscription_type возвращает 'paid' или 'free'
-@dp.callback_query_handler(lambda c: c.data in ['0', '1', '2', '3'])
-async def process_callback_mode_selection(callback_query: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith('gpt-'))
+async def handle_mode_selection(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
-    selected_mode_index = int(callback_query.data)
-    modem = mm.ModeManager(user_id, selected_mode_index)
+    data = callback_query.data  # 'gpt-3.5' или 'gpt-4'
 
-    # Проверка подписки и доступности режима
-    if not mode.is_mode_available_for_user(modem.get_mode(), user_id):
-        await mode.inform_user_about_subscription_requirements(callback_query)
+    # Получение текущих настроек пользователя из базы данных и обновление
+    db_manager.update_user(user_id, cur_gpt_mode=data)
+
+    # Перезапрашиваем обновленные данные пользователя
+    updated_user = db_manager.get_user(user_id)
+    cur_gpt_mode = updated_user['cur_gpt_mode']
+    gpt_subscription = updated_user['gpt_subscription_type']
+
+    # Создаем и отправляем обновленную клавиатуру
+    keyboard = create_mode_keyboard(cur_gpt_mode, gpt_subscription)
+    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+    await callback_query.answer("Режим обновлен!")
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith('pay'))
+async def process_callback_pay(callback_query: types.CallbackQuery):
+    await callback_query.answer()  # Отвечаем на callback, чтобы убрать часики в Telegram
+
+    user_id = callback_query.from_user.id
+    subscription_choice = callback_query.data
+
+    user = db_manager.get_user(user_id)
+    _, aitype, temp_sub = subscription_choice.split('_')
+    if user[f'{aitype}_subscription_type'] == temp_sub:
+        await callback_query.answer('sdfdfdf')
         return
 
-    # Сохраняем выбранный режим пользователя
-    modem.set_mode()
+    db_manager.update_user(user['user_id'], temp_subscription=subscription_choice)
 
-    # Обновляем клавиатуру с учетом выбора пользователя
-    keyboard = mode.build_mode_selection_keyboard(modem)
-    await bot.edit_message_text(
-        chat_id=callback_query.from_user.id,
-        message_id=callback_query.message.message_id,
-        text="Выберите режим:",
-        reply_markup=keyboard
-    )
+    # Словарь с ценами подписок (в копейках)
+    subscription_prices = {
+        "pay_gpt_Старт": 49000,
+        "pay_gpt_Стандарт": 99000,
+        "pay_gpt_Премиум": 299000,
+        "pay_mj_Старт": 29000,
+        "pay_mj_Стандарт": 59000,
+        "pay_mj_Премиум": 99000
+    }
 
-
-@dp.callback_query_handler(lambda c: c.data == 'pay')
-async def process_callback_pay(callback_query: types.CallbackQuery):
-    chat_id = callback_query.from_user.id
-
-    # Здесь должна быть логика для определения стоимости подписки
-    prices = [types.LabeledPrice(label="Подписка на месяц", amount=49900)]  # Стоимость в копейках
+    price = subscription_prices[subscription_choice]
+    title = "Подписка на сервисы ИИ"
+    description = "Месячная подписка на сервисы ИИ"
+    currency = "RUB"
+    prices = [types.LabeledPrice(label="Подписка", amount=price)]
+    # prices = [types.LabeledPrice(label="Подписка на месяц", amount=49900)]  # Стоимость в копейках
 
     await bot.send_invoice(
-        chat_id,
-        title="Подписка на сервисы ИИ",
-        description="Месячная подписка на сервисы ИИ",
+        user_id,
+        title=title,
+        description=description,
         provider_token="381764678:TEST:76035",
-        currency="RUB",
+        currency=currency,
         prices=prices,
         payload="UNIQUE_PAYLOAD",
         start_parameter="start",
     )
+
 
 
 @dp.pre_checkout_query_handler()
@@ -71,7 +90,25 @@ async def key_error(message: types.Message):
 
 @dp.message_handler(content_types=types.ContentType.SUCCESSFUL_PAYMENT)
 async def handle_successful_payment(message: types.Message):
-    # Здесь обновите статус подписки пользователя в вашей базе данных
-    db_creator.set_subscription_type(message.from_user.id, 'paid')
-    subscription.activate_subscription(message.from_user.id)
-    await message.reply("Спасибо за покупку подписки!")
+    user_id = message.from_user.id
+    user = db_manager.get_user(user_id)
+    sub_choice = user['temp_subscription']
+    print(sub_choice)
+
+    _, aitype, temp_sub = sub_choice.split('_')
+
+    print(temp_sub)
+    subscription_class = 0
+    db_manager.update_user(user['user_id'], temp_subscription=0)
+
+    # Определяем параметры подписки на основе полученного типа
+    if aitype == 'gpt':
+        subscription_class = GPTSubscription(db_manager, temp_sub)
+    elif aitype == 'mj':
+        subscription_class = MJSubscription(db_manager, temp_sub)
+
+    if subscription_class:
+        subscription_class.activate(user_id)
+        await message.reply("Спасибо за покупку подписки! Ваша подписка активирована.")
+    else:
+        await message.reply("Произошла ошибка при активации подписки.")
