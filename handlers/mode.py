@@ -14,7 +14,8 @@ def create_mode_keyboard(cur_gpt_mode, gpt_subscription):
     # Добавляем кнопки для GPT, если есть подписка
     if gpt_subscription in valid_subscriptions:
         gpt_buttons = [
-            InlineKeyboardButton(text=f"GPT-3.5{gpt_mark if cur_gpt_mode == 'gpt-3.5-turbo' else ''}", callback_data="gpt-3.5-turbo"),
+            InlineKeyboardButton(text=f"GPT-3.5{gpt_mark if cur_gpt_mode == 'gpt-3.5-turbo' else ''}",
+                                 callback_data="gpt-3.5-turbo"),
             InlineKeyboardButton(text=f"GPT-4{gpt_mark if cur_gpt_mode == 'gpt-4' else ''}", callback_data="gpt-4"),
         ]
         keyboard.add(*gpt_buttons)
