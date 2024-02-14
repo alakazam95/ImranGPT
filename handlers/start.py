@@ -1,46 +1,35 @@
 from aiogram import types
-from config import dp, bot
+from config import dp
 import data.creator as db
-import subscription
 from datetime import datetime, timedelta
 
+db_manager = db.DBManager()
 
 
 @dp.message_handler(commands=['start'])
-async def command_start(message: types.Message):
-    db_creator = db.dbCreator()
+async def send_welcome(message: types.Message):
     user_id = message.from_user.id
-    nickname = message.from_user.username  # Получение никнейма пользователя
+    user = db_manager.get_user(user_id)
 
-    # Проверка, существует ли пользователь
-    if db_creator.user_exists(user_id):
-        # Если пользователь существует, обновляем его никнейм
-        if db_creator.get_nickname(user_id) != nickname:
-            db_creator.set_nickname(user_id, nickname)
-            await bot.send_message(user_id, "Ваш никнейм обновлен.")
-    elif not db_creator.user_exists(user_id):
-        # Если пользователя нет, добавляем его в базу данных
-        db_creator.add_user(user_id, nickname)  # Предполагается, что add_user умеет обрабатывать nickname
+    # Если пользователь не найден в базе данных, создаем новую запись
+    if not user:
+        free_gpt_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db_manager.add_user(user_id=user_id, nickname=message.from_user.username,
+                            gpt_subscription_type=None, mj_subscription_type=None,
+                            cur_gpt_mode=None, cur_mj_mode=None, gpt3_free_tokens_update_date=free_gpt_date,
+                            gpt3_tokens=50000, mj52_limit=0, mj6_limit=0, gpt4_limit=0, gpt35_limit=0)
+        user = db_manager.get_user(user_id)  # Повторно получаем данные после создания
 
-        old_date = datetime.now() - timedelta(days=30)
-        db_creator.set_daily_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
-        db_creator.set_limit_update_date(user_id, old_date.strftime('%Y-%m-%d %H:%M:%S'))
-        print('not exist')
-        subscription.activate_subscription(user_id, 1)
-        await bot.send_message(user_id, "Вы зарегистрированы.")
-
-    # В вашем обработчике сообщений
-    print(db_creator.get_users())
-
-    await message.reply('''
-Это бот ChatGPT + MidJourney в Telegram. Чтобы задать вопрос, просто напишите его.  
-*Команды*
-/start - перезапуск
-/mode - выбрать нейросеть
-/profile - профиль пользователя
-/pay - купить подписку
-/reset - сброс контекста
-/img - генерация изображений
-/blend - смешивание изображений
-/help - помощь
-/ask - задать вопрос (в группах)''')
+    intro_text = "Привет! Я ваш помощник-бот. Вот что я могу:"
+    commands_list = (
+        "/start - показать это сообщение\n"
+        "/profile - показать ваш профиль\n"
+        "/mode - выбрать режим работы\n"
+        "/pay - купить подписку\n"
+        "/reset - сброс контекста\n"
+        "/img - генерация изображений\n"
+        "/blend - смешивание изображений\n"
+        "/help - помощь\n"
+        "/ask - задать вопрос (в группах)\n"
+    )
+    await message.answer(f"{intro_text}\n\n{commands_list}")

@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+valid_subscriptions = ['Старт', 'Стандарт', 'Премиум']  # Предполагаемые валидные типы подписки
+
 
 class Subscription:
     def __init__(self, db_manager):
@@ -24,12 +26,13 @@ class GPTSubscription(Subscription):
     def activate(self, user_id):
         new_sub_date = datetime.now()
         new_sub_end_date = new_sub_date + timedelta(days=30)  # Подписка длится 30 дней
+        daily_date = new_sub_date + timedelta(days=1)
 
         # Активируем новую подписку
         self.db_manager.update_user(user_id,
                                     gpt_subscription_type=self.subscription_type,
                                     gpt_sub_update_date=new_sub_date.strftime("%Y-%m-%d %H:%M:%S"),
-                                    gpt_sub_end_date=new_sub_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                                    gpt_daily_update_date=daily_date.strftime("%Y-%m-%d %H:%M:%S"),
                                     gpt4_limit=self.limits['limit_gpt4'],
                                     gpt35_limit=self.limits['limit_gpt35'],
                                     gpt3_tokens=0)  # Сброс токенов при активации новой подписки
@@ -37,9 +40,9 @@ class GPTSubscription(Subscription):
 
 class MJSubscription(Subscription):
     SUBSCRIPTION_TYPES = {
-        'Старт': {'limit': 10, 'price': 290},
-        'Стандарт': {'limit': 25, 'price': 590},
-        'Премиум': {'limit': 50, 'price': 990}
+        'Старт': 10,
+        'Стандарт': 25,
+        'Премиум': 50
     }
 
     def __init__(self, db_manager, subscription_type):
@@ -50,11 +53,10 @@ class MJSubscription(Subscription):
     def activate(self, user_id):
         new_sub_date = datetime.now()
         new_sub_end_date = new_sub_date + timedelta(days=30)  # Подписка длится 30 дней
-
+        daily_date = new_sub_date + timedelta(days=1)
         # Активируем новую подписку
         self.db_manager.update_user(user_id,
                                     mj_subscription_type=self.subscription_type,
                                     mj_sub_update_date=new_sub_date.strftime("%Y-%m-%d %H:%M:%S"),
-                                    mj_sub_end_date=new_sub_end_date.strftime("%Y-%m-%d %H:%M:%S"),
-                                    mj52_limit=self.limits['limit'],
-                                    mj6_limit=self.limits['limit'])  # Если лимиты одинаковы для обеих версий MJ
+                                    mj_daily_update_date=daily_date.strftime("%Y-%m-%d %H:%M:%S"),
+                                    mj52_limit=self.limits)  # Если лимиты одинаковы для обеих версий MJ
