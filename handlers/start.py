@@ -20,14 +20,14 @@ async def send_welcome(message: types.Message):
                             gpt3_tokens=50000, mj52_limit=0, mj6_limit=0, gpt4_limit=0, gpt35_limit=0)
         user = db_manager.get_user(user_id)  # Повторно получаем данные после создания
 
-    intro_text = "Привет! Я ваш помощник-бот. Вот что я могу:"
+    intro_text = "Это бот ChatGPT + MidJourney в Telegram. Чтобы задать вопрос, просто напишите его."
     commands_list = (
         "/start - показать это сообщение\n"
         "/profile - показать ваш профиль\n"
         "/mode - выбрать режим работы\n"
         "/pay - купить подписку\n"
         "/reset - сброс контекста\n"
-        "/img - генерация изображений\n"
+        "/imagine - генерация изображений\n"
         "/blend - смешивание изображений\n"
         "/help - помощь\n"
         "/ask - задать вопрос (в группах)\n"
