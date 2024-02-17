@@ -18,7 +18,7 @@ async def command_pay(message: types.Message):
 
     # Создаем кнопки для каждой подписки
     subscription_buttons = [
-        types.InlineKeyboardButton("GPT Старт - 490 руб/мес - 990 руб/мес - 20 запросов GPT4 и 50 GPT3.5 в день", callback_data="pay_gpt_Старт"),
+        types.InlineKeyboardButton("GPT Старт - 490 руб/мес - 20 запросов GPT4 и 50 GPT3.5 в день", callback_data="pay_gpt_Старт"),
         types.InlineKeyboardButton("GPT Стандарт - 990 руб/мес - 50 запросов GPT4 и 100 GPT3.5 в день", callback_data="pay_gpt_Стандарт"),
         types.InlineKeyboardButton("GPT Премиум - 2990 руб/мес - безлимит", callback_data="pay_gpt_Премиум"),
         types.InlineKeyboardButton("Midjourney Старт - 290 руб/мес - 10 запросов в день", callback_data="pay_mj_Старт"),
