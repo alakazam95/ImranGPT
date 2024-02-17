@@ -29,12 +29,12 @@ async def command_pay(message: types.Message):
     # Добавляем кнопки в клавиатуру
     keyboard.add(*subscription_buttons)
     description = """
-    Выберите тип подписки:\n
-    GPT Старт - 20 запросов GPT4 и 50 GPT3.5 в день\n
-    GPT Стандарт - 50 запросов GPT4 и 100 GPT3.5 в день\n
-    GPT Премиум -  150 запросов GPT4 и 150 GPT3.5 в день\n
-    Midjourney Старт - 10 запросов в день\n
-    Midjourney Стандарт - 25 запросов в день\n
-    Midjourney Премиум - 50 запросов в день\n
+Выберите тип подписки:\n
+*GPT Старт* - *20* запросов GPT4 и *50* GPT3.5 в день\n
+*GPT Стандарт* - *50* запросов GPT4 и *100* GPT3.5 в день\n
+*GPT Премиум* -  безлимит\n
+*Midjourney Старт* - *10* запросов в день\n
+*Midjourney Стандарт* - *25* запросов в день\n
+*Midjourney Премиум* - *50* запросов в день\n
     """
     await message.reply(description, reply_markup=keyboard)
